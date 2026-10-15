@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Ambulance Route Finder</title>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#eef3fb;--card:#fff;--ink:#1b2540;--mute:#5d6a88;--line:#c3cde3;--dij:#ff4f6d;--bfs:#00a99d;--dfs:#7a4dff;--mst:#ffb400;--hos:#e63946;--dep:#2ec46d;--acc:#ff8a00;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#12182b;--card:#1c2440;--ink:#eef1fb;--mute:#9aa6c8;--line:#3b4770}}
+:root[data-theme="dark"]{--bg:#12182b;--card:#1c2440;--ink:#eef1fb;--mute:#9aa6c8;--line:#3b4770}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:'Outfit',system-ui,sans-serif}
+header{padding:20px 20px 4px;max-width:1100px;margin:auto}
+h1{margin:0;font-size:1.7rem;font-weight:800}
+header p{margin:4px 0 0;color:var(--mute)}
+main{display:grid;grid-template-columns:2fr 1fr;gap:16px;max-width:1100px;margin:auto;padding:16px 20px 28px}
+@media(max-width:800px){main{grid-template-columns:1fr}}
+.card{background:var(--card);border-radius:18px;padding:14px}
+svg{width:100%;height:auto;display:block}
+.btns{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px}
+button{border:0;border-radius:999px;padding:10px 16px;font:600 .95rem 'Outfit',sans-serif;color:#fff;cursor:pointer}
+button:focus-visible{outline:3px solid var(--ink);outline-offset:2px}
+.b1{background:var(--dij)}.b2{background:var(--bfs)}.b3{background:var(--dfs)}.b4{background:var(--mst);color:#1b2540}.b5{background:var(--mute)}
+h2{margin:0 0 8px;font-size:1.1rem}
+#out{min-height:150px;line-height:1.5}
+#out b{font-weight:800}
+.lg{display:flex;flex-wrap:wrap;gap:10px 16px;margin-top:12px;color:var(--mute);font-size:.88rem}
+.lg i{display:inline-block;width:12px;height:12px;border-radius:50%;margin-right:5px;vertical-align:-1px}
+.hint{color:var(--mute);font-size:.88rem;margin:10px 0 0}
+</style>
+</head>
+<body>
+<header><h1>Ambulance Route Finder</h1><p>Graph-based emergency routing: BFS, DFS, Dijkstra and MST on a city road network</p></header>
+<main>
+<section class="card">
+<div class="btns">
+<button class="b1" onclick="dij()">Fastest route (Dijkstra)</button>
+<button class="b2" onclick="bfs()">Nearest hospital (BFS)</button>
+<button class="b3" onclick="dfs()">Explore roads (DFS)</button>
+<button class="b4" onclick="mst()">Cheapest road network (MST)</button>
+<button class="b5" onclick="reset()">Reset</button>
+</div>
+<svg id="m" viewBox="0 0 700 400" role="img" aria-label="City road graph"></svg>
+<div class="lg"><span><i style="background:var(--dep)"></i>Depot</span><span><i style="background:var(--acc)"></i>Accident spot</span><span><i style="background:var(--hos)"></i>Hospital</span><span><i style="background:var(--line)"></i>Junction</span></div>
+<p class="hint">Click a junction to move the accident spot. Click a road to block or unblock it, then run an algorithm again. Numbers on roads are travel minutes.</p>
+</section>
+<aside class="card"><h2>Result</h2><div id="out">Pick an algorithm to see the route.</div></aside>
+</main>
+<script>
+const N=[["Depot",70,90],["Market",200,60],["Bus Stand",340,100],["Park",480,70],["College",620,110],["Signal",150,210],["Mall",300,230],["Temple",460,220],["City Hospital",600,330],["Govt Hospital",90,340]];
+const E=[[0,1,4],[1,2,3],[2,3,4],[3,4,3],[0,5,5],[1,5,4],[2,6,3],[5,6,4],[6,7,4],[3,7,5],[7,4,4],[4,8,6],[7,8,5],[5,9,4],[6,9,7]];
+const H=[8,9],DEP=0,C={d:'#ff4f6d',b:'#00a99d',f:'#7a4dff',m:'#ffb400'};
+let acc=7,blocked=new Set(),hl={e:{},n:{}};
+const key=(a,b)=>a<b?a+'-'+b:b+'-'+a;
+const $=id=>document.getElementById(id);
+function adj(){const g=N.map(()=>[]);E.forEach(([a,b,w])=>{if(!blocked.has(key(a,b))){g[a].push([b,w]);g[b].push([a,w])}});return g}
+function draw(){
+let s='';
+E.forEach(([a,b,w])=>{const k=key(a,b),x1=N[a][1],y1=N[a][2],x2=N[b][1],y2=N[b][2],bl=blocked.has(k),c=hl.e[k];
+s+=`<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${bl?'#e63946':c||'var(--line)'}" stroke-width="${c?7:4}" stroke-linecap="round" ${bl?'stroke-dasharray="3 9"':''}/>`;
+s+=`<text x="${(x1+x2)/2}" y="${(y1+y2)/2-7}" text-anchor="middle" font-size="13" font-weight="600" fill="var(--mute)">${bl?'blocked':w}</text>`;
+s+=`<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="transparent" stroke-width="22" style="cursor:pointer" onclick="blk(${a},${b})"/>`});
+N.forEach(([n,x,y],i)=>{const h=H.includes(i),d=i==DEP,a=i==acc,f=h?'var(--hos)':d?'var(--dep)':a?'var(--acc)':hl.n[i]||'var(--line)';
+s+=`<g style="cursor:pointer" onclick="pick(${i})"><circle cx="${x}" cy="${y}" r="${h||d||a?19:15}" fill="${f}" stroke="var(--card)" stroke-width="3"/>`;
+s+=`<text x="${x}" y="${y+5}" text-anchor="middle" font-size="14" font-weight="800" fill="#fff">${h?'H':d?'A':a?'!':i}</text>`;
+s+=`<text x="${x}" y="${y+36}" text-anchor="middle" font-size="12.5" font-weight="600" fill="var(--ink)">${n}</text></g>`});
+$('m').innerHTML=s}
+function out(t){$('out').innerHTML=t;draw()}
+function clr(){hl={e:{},n:{}}}
+function blk(a,b){const k=key(a,b);blocked.has(k)?blocked.delete(k):blocked.add(k);clr();out(`Road <b>${N[a][0]} – ${N[b][0]}</b> is now ${blocked.has(k)?'blocked':'open'}. Run an algorithm to find a new route.`)}
+function pick(i){if(i==DEP||H.includes(i))return;acc=i;clr();out(`Accident spot moved to <b>${N[i][0]}</b>.`)}
+function dijk(s){const g=adj(),d=N.map(()=>Infinity),p=N.map(()=>-1),v=N.map(()=>0);d[s]=0;
+for(let k=0;k<N.length;k++){let u=-1;d.forEach((x,i)=>{if(!v[i]&&x<Infinity&&(u<0||x<d[u]))u=i});if(u<0)break;v[u]=1;g[u].forEach(([w,c])=>{if(d[u]+c<d[w]){d[w]=d[u]+c;p[w]=u}})}return{d,p}}
+function path(p,t){const r=[];for(;t>=0;t=p[t])r.unshift(t);return r}
+function mark(pt,col){pt.forEach((x,i)=>{hl.n[x]=col;if(i)hl.e[key(pt[i-1],x)]=col})}
+function dij(){clr();const a=dijk(DEP);if(a.d[acc]==Infinity)return out('Accident spot is <b>unreachable</b>. Unblock a road.');
+const b=dijk(acc);let h=H.filter(x=>b.d[x]<Infinity).sort((x,y)=>b.d[x]-b.d[y])[0];if(h===undefined)return out('No hospital reachable from the accident spot.');
+const p1=path(a.p,acc),p2=path(b.p,h).reverse().reverse();const q=path(b.p,h);mark(p1,C.d);mark(q,C.m);
+out(`<b>Depot to accident:</b> ${p1.map(i=>N[i][0]).join(' → ')} (${a.d[acc]} min)<br><b>Accident to ${N[h][0]}:</b> ${q.map(i=>N[i][0]).join(' → ')} (${b.d[h]} min)<br><b>Total:</b> ${a.d[acc]+b.d[h]} min`)}
+function bfs(){clr();const g=adj(),lv=N.map(()=>-1),p=N.map(()=>-1),o=[acc];lv[acc]=0;
+for(let i=0;i<o.length;i++)g[o[i]].forEach(([w])=>{if(lv[w]<0){lv[w]=lv[o[i]]+1;p[w]=o[i];o.push(w)}});
+o.forEach(i=>{if(p[i]>=0)hl.e[key(i,p[i])]=C.b;hl.n[i]=C.b});
+const h=o.find(i=>H.includes(i));
+out(`<b>BFS order from accident:</b> ${o.map(i=>N[i][0]).join(', ')}<br><b>Nearest hospital by fewest roads:</b> ${h===undefined?'none reachable':N[h][0]+' ('+lv[h]+' roads)'}`)}
+function dfs(){clr();const g=adj(),v=N.map(()=>0),o=[];
+(function f(u){v[u]=1;o.push(u);g[u].forEach(([w])=>{if(!v[w]){hl.e[key(u,w)]=C.f;f(w)}})})(DEP);
+o.forEach(i=>hl.n[i]=C.f);let cnt=0;const vis=N.map(()=>0);
+(function r(u){if(u==acc){cnt++;return}vis[u]=1;g[u].forEach(([w])=>{if(!vis[w])r(w)});vis[u]=0})(DEP);
+out(`<b>DFS order from depot:</b> ${o.map(i=>N[i][0]).join(', ')}<br><b>Network:</b> ${o.length==N.length?'fully connected':'<b>not</b> connected, '+(N.length-o.length)+' junction(s) cut off'}<br><b>Different routes depot to accident:</b> ${cnt}`)}
+function mst(){clr();const g=adj(),v=N.map(()=>0);v[0]=1;let t=0,n=1,l=[];
+for(;;){let b=null;E.forEach(([a,c,w])=>{if(blocked.has(key(a,c))||v[a]==v[c])return;if(!b||w<b[2])b=[a,c,w]});if(!b)break;
+const x=v[b[0]]?b[1]:b[0];v[x]=1;n++;t+=b[2];hl.e[key(b[0],b[1])]=C.m;l.push(N[b[0]][0]+' – '+N[b[1]][0]+' ('+b[2]+')')}
+v.forEach((x,i)=>{if(x)hl.n[i]=C.m});
+out(`<b>Prim's MST roads:</b><br>${l.join('<br>')}<br><b>Total cost:</b> ${t} for ${n} junctions`)}
+function reset(){acc=7;blocked.clear();clr();out('Pick an algorithm to see the route.')}
+draw();
+</script>
+</body>
+</html>
