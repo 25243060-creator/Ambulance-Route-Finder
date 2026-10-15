@@ -26,7 +26,7 @@ A Data Structures micro project that models a city road network as a weighted gr
 |---|---|
 | `ambulance_route_finder.c` | C program (main implementation) |
 | `sample_input.txt` | Sample city map with 10 junctions and 15 roads |
-| `dashboard/index.html` | Colourful interactive dashboard that visualizes the same logic |
+| `index.html` | Colourful interactive dashboard that visualizes the same logic |
 
 ## How to run the C program
 
@@ -71,9 +71,9 @@ Total time: 21 min
 
 ## Dashboard
 
-Open `dashboard/index.html` in a browser. Click a junction to move the accident spot, click a road to block or unblock it, and use the buttons to run Dijkstra, BFS, DFS or MST.
+Open `index.html` in a browser. Click a junction to move the accident spot, click a road to block or unblock it, and use the buttons to run Dijkstra, BFS, DFS or MST.
 
-![Dashboard](screenshots/dashboard.png)
+![Dashboard](dashboard.png)
 
 ## Author
 
