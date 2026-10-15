@@ -1,0 +1,23 @@
+10
+Depot Market Bus_Stand Park College Signal Mall Temple City_Hospital Govt_Hospital
+15
+0 1 4
+1 2 3
+2 3 4
+3 4 3
+0 5 5
+1 5 4
+2 6 3
+5 6 4
+6 7 4
+3 7 5
+7 4 4
+4 8 6
+7 8 5
+5 9 4
+6 9 7
+0
+7
+2
+8 9
+6 7
